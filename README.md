@@ -1,11 +1,26 @@
 # Full Stack React + Express Application
 
-A full stack application with React frontend and Express.js backend, designed to serve both API requests and the frontend SPA from a single server.
+A full stack TypeScript application with React frontend and Express.js backend, designed to serve both API requests and the frontend SPA from a single server.
+
+## Development Environment
+
+This project is built with **TypeScript** throughout the stack and designed to run in **VS Code** using **devcontainer technology**. The devcontainer ensures a consistent development environment with all necessary tools and dependencies pre-configured.
+
+### Prerequisites
+- **VS Code** with the Dev Containers extension
+- **Docker** (for devcontainer support)
+
+### Getting Started
+1. Clone the repository
+2. Open in VS Code
+3. VS Code will prompt to "Reopen in Container" - click yes
+4. The devcontainer will automatically set up the development environment
 
 ## Architecture
 
-- **Frontend**: React SPA built with Vite
-- **Backend**: Node.js Express server
+- **Frontend**: React SPA built with Vite and TypeScript
+- **Backend**: Node.js Express server written in TypeScript
+- **Development**: VS Code devcontainer with pre-configured tooling
 - **Deployment**: Single server serves both API and frontend
 
 ## Project Structure
@@ -13,11 +28,11 @@ A full stack application with React frontend and Express.js backend, designed to
 ```
 ├── frontend/           # React application
 ├── server/            # Express server
-│   ├── index.js       # Main server file
+│   ├── index.ts       # Main server file
 │   ├── api/
-│   │   ├── routes.js  # Dynamic route loader
+│   │   ├── routes.ts  # Dynamic route loader
 │   │   ├── middleware/
-│   │   │   └── cors.js # CORS configuration
+│   │   │   └── cors.ts # CORS configuration
 │   │   └── handlers/  # API route handlers
 │   └── package.json
 ├── scripts/           # Build scripts
@@ -40,17 +55,17 @@ A full stack application with React frontend and Express.js backend, designed to
 - Routes are automatically loaded and registered
 
 ### 3. **CORS Middleware**
-- Configured in `server/api/middleware/cors.js`
+- Configured in `server/api/middleware/cors.ts`
 - Supports environment-based configuration
 
 ## API Handler Example
 
-```javascript
-// server/api/handlers/users.js
-module.exports = {
+```typescript
+// server/api/handlers/users/index.ts
+export default {
   route: '/users',
   method: 'GET',
-  handler: (req, res) => {
+  handler: (req: Request, res: Response) => {
     res.json({ success: true, data: [] });
   }
 };
@@ -111,17 +126,19 @@ export FRONTEND_DIST="custom/frontend/path"
 
 ## Adding New API Handlers
 
-1. Create a new file in `server/api/handlers/`
-2. Export route, method, and handler function
+1. Create a new folder and `index.ts` file in `server/api/handlers/`
+2. Export route, method, and handler function using TypeScript
 3. The route will be automatically loaded
 
 Example:
-```javascript
-// server/api/handlers/products.js
-module.exports = {
+```typescript
+// server/api/handlers/products/index.ts
+import { Request, Response } from 'express';
+
+export default {
   route: '/products',
   method: 'GET',
-  handler: (req, res) => {
+  handler: (req: Request, res: Response) => {
     res.json({ products: [] });
   }
 };
