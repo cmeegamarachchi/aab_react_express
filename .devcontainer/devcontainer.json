@@ -1,0 +1,32 @@
+{
+  "name": "appsolve application blocks nodejs starter",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "forwardPorts": [8324],    
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "prettier.printWidth": 120,
+        "terminal.integrated.shell.linux": "/bin/bash",
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+				"[typescript]": {
+					"editor.formatOnSave": true
+				},
+				"[javascript]": {
+					"editor.formatOnSave": true
+				},
+				"[json]": {
+					"editor.formatOnSave": true
+				},            
+      "workbench.iconTheme": "material-icon-theme"        
+      },
+      "extensions": [
+				"esbenp.prettier-vscode",        
+        "PKief.material-icon-theme",
+        "GitHub.copilot", // GitHub Copilot
+        "humao.rest-client"
+      ]
+    }
+  }
+}
