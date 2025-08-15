@@ -9,13 +9,13 @@ A full stack TypeScript application with React frontend and Express.js backend, 
 - **Express.js** backend with modular API handlers
 - **VS Code devcontainer** for consistent development environment
 - **Docker support** for easy deployment and distribution
-- **Centralized configuration** system with TypeScript interfaces and environment variable overrides
+- **Centralized configuration** system with development overrides and secrets management
 - **Authentication system** with OpenID Connect support and development mode
 - Single server serves both API and frontend
 - Modular API handler architecture with automatic route loading
 - CORS middleware support
 - **Environment-based configuration**
-- **Type-safe configuration management** with centralized settings
+- **Type-safe configuration management** with layered overrides and secrets handling
 
 ## Architecture
 
@@ -56,9 +56,11 @@ export default {
 │   ├── src/
 │   │   ├── index.ts       # Main server file
 │   │   ├── config/        # Configuration management
-│   │   │   ├── config-manager.ts    # Configuration utility
-│   │   │   ├── server.config.json   # Default configuration
-│   │   │   └── index.ts             # Barrel export
+│   │   │   ├── config-manager.ts         # Configuration utility with deep merge
+│   │   │   ├── server.config.json        # Base configuration (committed)
+│   │   │   ├── server.config.dev.json    # Dev overrides (excluded from git)
+│   │   │   ├── server.config.dev.json.template # Template for dev setup
+│   │   │   └── index.ts                  # Barrel export
 │   │   ├── api/
 │   │   │   ├── routes.ts  # Dynamic route loader
 │   │   │   ├── middleware/
@@ -78,8 +80,14 @@ export default {
 ## Quick Start
 
 1. Clone the repository and open in VS Code
-2. Accept the prompt to "Reopen in Container"
+2. Accept the prompt to "Reopen in Container"  
 3. The devcontainer will set up the development environment automatically
+4. **Setup development configuration**:
+   ```bash
+   cd server/src/config
+   cp server.config.dev.json.template server.config.dev.json
+   # Edit server.config.dev.json with your secrets
+   ```
 
 ## Documentation
 
@@ -107,8 +115,21 @@ For detailed information, see the following guides:
 
 ## Configuration
 
-The application uses a centralized configuration system with:
+The application uses a layered configuration system with support for development secrets:
 
+### Configuration Loading Priority
+1. **Base Configuration** - `server.config.json` (safe defaults, committed)
+2. **Development Overrides** - `server.config.dev.json` (secrets, excluded from git)  
+3. **Environment Variables** - System environment variables (highest priority)
+
+### Development Setup
+```bash
+# Copy template and add your secrets
+cp server/src/config/server.config.dev.json.template server/src/config/server.config.dev.json
+# Edit server.config.dev.json with actual values
+```
+
+### Environment Variables (Still Supported)
 ```bash
 # Core server settings
 PORT=3000                         # Server port
@@ -128,4 +149,4 @@ OIDC_CLIENT_SECRET=your-secret   # OIDC client secret
 # ... other OIDC settings
 ```
 
-Configuration is loaded from `server/src/config/server.config.json` with environment variable overrides. See the [Configuration Guide](docs/Configuration.md) for detailed information.
+The system automatically merges configurations and shows you exactly which sources are being used. See the [Configuration Guide](docs/Configuration.md) for detailed information.

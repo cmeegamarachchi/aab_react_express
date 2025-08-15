@@ -140,17 +140,53 @@ export default [getProducts, createProduct];
 
 ## Configuration Management
 
-The application uses a centralized configuration system that replaces direct environment variable usage with a structured approach.
+The application uses a layered configuration system with support for local development secrets:
 
 ### Configuration Files
 
-- **`server/src/config/server.config.json`** - Main configuration file with default values
-- **`server/src/config/config-manager.ts`** - Configuration utility module with type safety
-- **`.env`** - Environment variables that override configuration file values
+- **`server/src/config/server.config.json`** - Base configuration (committed to source control)
+- **`server/src/config/server.config.dev.json`** - Local development overrides with secrets (excluded from git)
+- **`server/src/config/server.config.dev.json.template`** - Template for creating local dev config
+- **`server/src/config/config-manager.ts`** - Configuration utility with type safety and deep merging
+
+### First-Time Development Setup
+
+1. **Copy the development config template**:
+   ```bash
+   cd server/src/config
+   cp server.config.dev.json.template server.config.dev.json
+   ```
+
+2. **Edit with your actual secrets**:
+   ```bash
+   # Edit the dev config with real values
+   nano server.config.dev.json
+   ```
+
+   Example `server.config.dev.json`:
+   ```json
+   {
+     "session": {
+       "secret": "your-development-session-secret-here"
+     },
+     "auth": {
+       "oidc": {
+         "clientSecret": "your-actual-oidc-client-secret"
+       }
+     }
+   }
+   ```
+
+3. **The dev config is automatically excluded from git** - you can safely add secrets without worrying about committing them.
+
+### Configuration Loading Priority
+
+Configuration values are loaded and merged in this order:
+1. **Base Configuration** - `server.config.json`
+2. **Development Overrides** - `server.config.dev.json` (if exists)  
+3. **Environment Variables** - System environment variables (highest priority)
 
 ### Usage in Development
-
-The configuration system provides type safety and better organization:
 
 ```typescript
 import configManager from './config/config-manager';
@@ -160,14 +196,12 @@ const config = configManager.getConfiguration();
 
 // Get specific sections
 const serverConfig = configManager.getServerConfig();
-const corsConfig = configManager.getCorsConfig();
+const authConfig = configManager.getAuthConfig();
 ```
 
-### Environment Variables
+### Environment Variables (Still Supported)
 
-### Development Environment
-
-Create a `.env` file in the server directory for local development overrides:
+Environment variables continue to work and will override both base config and dev config:
 
 ```bash
 # Server configuration
@@ -180,14 +214,42 @@ FRONTEND_DIST=../../frontend/dist
 # CORS configuration
 CORS_ORIGIN=http://localhost:5173
 
-# Authentication (for development)
+# Authentication
 DISABLE_AUTH=true
 
-# Session secret (required)
-SESSION_SECRET=your-dev-session-secret-at-least-32-chars
+# Session secret (overrides both config files)
+SESSION_SECRET=your-env-session-secret
+
+# OIDC credentials (overrides dev config)
+OIDC_CLIENT_SECRET=your-env-oidc-secret
 ```
 
-**Note**: Environment variables override values in `server.config.json`. The configuration system will log which values are being overridden at startup.
+### Development Environment Options
+
+You now have multiple ways to configure your development environment:
+
+**Option 1: Dev Config Only (Recommended)**
+```bash
+# Copy template and edit with secrets
+cp server.config.dev.json.template server.config.dev.json
+# Edit server.config.dev.json with your values
+```
+
+**Option 2: Environment Variables Only (Legacy)**
+```bash
+# Create .env file in server directory
+echo "SESSION_SECRET=your-secret" > server/.env
+echo "OIDC_CLIENT_SECRET=your-secret" >> server/.env
+```
+
+**Option 3: Mixed Approach**
+```bash
+# Use dev config for most secrets, env vars for specific overrides
+# Dev config: session secret, OIDC secrets
+# Env vars: PORT, NODE_ENV, etc.
+export PORT=4000
+npm run dev
+```
 
 ### Custom Configuration
 

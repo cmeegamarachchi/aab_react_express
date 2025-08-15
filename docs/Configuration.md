@@ -1,15 +1,20 @@
 # Configuration Management
 
-This document describes the new configuration management system that replaces direct environment variable usage with a structured configuration approach.
+This document describes the configuration management system that uses structured JSON files with support for local development overrides and environment variable integration.
 
 ## Overview
 
-The API now loads its configuration from a `server.config.json` file located in `server/src/config/` through a utility module called `config-manager.ts`. This provides better organization, type safety, and maintainability.
+The API loads its configuration from multiple sources in order of priority:
+1. **Base Configuration** - `server.config.json` (committed to source control)
+2. **Development Overrides** - `server.config.dev.json` (excluded from source control)
+3. **Environment Variables** - System environment variables (highest priority)
+
+This layered approach provides security, flexibility, and maintainability while keeping secrets out of source control.
 
 ## Configuration Files
 
-### `server/src/config/server.config.json`
-The main configuration file containing all application settings organized into logical sections:
+### `server/src/config/server.config.json` (Base Configuration)
+The main configuration file containing default application settings. Sensitive values are removed and should be provided via dev config or environment variables:
 
 ```json
 {
@@ -25,7 +30,7 @@ The main configuration file containing all application settings organized into l
     "credentials": true
   },
   "session": {
-    "secret": "your-random-256-bit-session-secret-change-this-in-production",
+    "secret": "your-random-256-bit-session-secret-change-this-in-production-replace-with-dev-config",
     "resave": false,
     "saveUninitialized": false,
     "cookieSecure": false
@@ -33,12 +38,12 @@ The main configuration file containing all application settings organized into l
   "auth": {
     "disabled": false,
     "oidc": {
-      "issuer": "https://login.microsoftonline.com/...",
-      "authorizationURL": "https://login.microsoftonline.com/...",
-      "tokenURL": "https://login.microsoftonline.com/...",
+      "issuer": "https://login.microsoftonline.com/ae5a8cb0-673c-43ba-826c-c2d6c87f2d70/v2.0",
+      "authorizationURL": "https://login.microsoftonline.com/ae5a8cb0-673c-43ba-826c-c2d6c87f2d70/oauth2/v2.0/authorize",
+      "tokenURL": "https://login.microsoftonline.com/ae5a8cb0-673c-43ba-826c-c2d6c87f2d70/oauth2/v2.0/token",
       "userInfoURL": "https://graph.microsoft.com/oidc/userinfo",
-      "clientID": "your-client-id",
-      "clientSecret": "your-client-secret",
+      "clientID": "fbc70098-07fd-4e49-beda-4ca941cedb87",
+      "clientSecret": "",
       "callbackURL": "http://localhost:3000/auth/callback",
       "scope": "openid profile email"
     }
@@ -46,13 +51,70 @@ The main configuration file containing all application settings organized into l
 }
 ```
 
+### `server/src/config/server.config.dev.json` (Development Overrides)
+Local development configuration that overrides base values. **This file is excluded from source control** and contains sensitive data:
+
+```json
+{
+  "session": {
+    "secret": "development-session-secret-for-local-testing-only"
+  },
+  "auth": {
+    "oidc": {
+      "clientSecret": "your-actual-oidc-client-secret-here"
+    }
+  }
+}
+```
+
+### `server/src/config/server.config.dev.json.template` (Developer Template)
+Template file for creating local dev configuration. Developers copy this to get started:
+
+```bash
+cp server.config.dev.json.template server.config.dev.json
+```
+
 ### `server/src/config/config-manager.ts`
 The configuration management utility that:
-- Loads configuration from the JSON file
+- Loads and merges configurations in priority order
+- Provides deep merge functionality for nested objects
 - Allows environment variable overrides
 - Provides type safety with TypeScript interfaces
 - Implements singleton pattern for efficient access
-- Includes validation and logging features
+- Includes validation and comprehensive logging
+
+## Setup for Developers
+
+### First-Time Setup
+
+1. **Copy the template file**:
+   ```bash
+   cd server/src/config
+   cp server.config.dev.json.template server.config.dev.json
+   ```
+
+2. **Edit with your actual secrets**:
+   ```bash
+   # Edit the dev config with real values
+   nano server.config.dev.json
+   ```
+
+3. **The dev config is automatically excluded from git commits** - you can safely add secrets without worrying about committing them.
+
+### Configuration Loading Priority
+
+The system loads configuration in this order (later sources override earlier ones):
+
+1. **📄 Base Configuration** - `server.config.json`
+2. **🔧 Development Overrides** - `server.config.dev.json` (if exists)
+3. **🌍 Environment Variables** - System environment variables
+
+**Example loading log**:
+```
+📝 Development configuration loaded and merged from server.config.dev.json
+✅ Configuration loaded successfully from server.config.json with dev overrides
+🔧 Configuration overrides from: server.config.dev.json, Environment variables (PORT, SESSION_SECRET)
+```
 
 ## Usage
 
@@ -117,31 +179,141 @@ The configuration manager includes validation to ensure:
 - Session secret meets minimum length requirements
 - OIDC credentials are present when authentication is enabled
 
-### Logging
-The system provides helpful logging:
-- ✅ Configuration loaded successfully
-- 🔧 Environment variable overrides listing
-- ❌ Validation errors and loading failures
+### Logging and Debugging
+
+The system provides comprehensive logging to show exactly where configuration values come from:
+
+```
+📝 Development configuration loaded and merged from server.config.dev.json
+✅ Configuration loaded successfully from server.config.json with dev overrides  
+🔧 Configuration overrides from: server.config.dev.json, Environment variables (PORT, SESSION_SECRET)
+🔐 Authentication is ENABLED
+```
+
+### Deep Merge Behavior
+
+The dev config uses deep merging, so you only need to specify the values you want to override:
+
+**Base config** (`server.config.json`):
+```json
+{
+  "auth": {
+    "disabled": false,
+    "oidc": {
+      "clientID": "abc123",
+      "clientSecret": "",
+      "scope": "openid profile email"
+    }
+  }
+}
+```
+
+**Dev config** (`server.config.dev.json`):
+```json
+{
+  "auth": {
+    "oidc": {
+      "clientSecret": "real-secret-here"
+    }
+  }
+}
+```
+
+**Final merged result**:
+```json
+{
+  "auth": {
+    "disabled": false,
+    "oidc": {
+      "clientID": "abc123",
+      "clientSecret": "real-secret-here",
+      "scope": "openid profile email"
+    }
+  }
+}
+```
 
 ### Singleton Pattern
 Configuration is loaded once and cached for efficient access throughout the application lifecycle.
 
+## Security Best Practices
+
+### ✅ Do's
+- **Use dev config for secrets**: Store sensitive values in `server.config.dev.json`
+- **Commit the template**: The `.template` file helps other developers get started
+- **Use environment variables in production**: Override sensitive values with env vars in production
+- **Keep base config clean**: No secrets in `server.config.json`
+
+### ❌ Don'ts  
+- **Don't commit dev config**: The `.gitignore` prevents this, but be aware
+- **Don't put secrets in base config**: Keep `server.config.json` safe for source control
+- **Don't rely on dev config in production**: Use environment variables instead
+
+### Development vs Production
+
+**Development** (local):
+```
+Base config → Dev config → Environment variables
+```
+
+**Production** (deployed):
+```  
+Base config → Environment variables
+```
+
+In production, you typically won't have a dev config file, so environment variables become the primary override mechanism.
+
 ## Migration from Environment Variables
 
-The migration is backward compatible - existing `.env` files continue to work as environment variable overrides. However, default values are now centralized in the configuration file rather than scattered throughout the code.
+The system is fully backward compatible - existing `.env` files and environment variables continue to work exactly as before. The main difference is that default values are now centralized in configuration files rather than scattered throughout the code.
+
+### Migration Steps (Optional)
+
+If you want to move from pure environment variables to the new system:
+
+1. **Keep your existing environment variables** - they still work as overrides
+2. **Copy sensitive values to dev config** - move secrets from `.env` to `server.config.dev.json`
+3. **Update base config** - set appropriate defaults in `server.config.json`
+
+## Build Process Integration
+
+The build system automatically handles config files:
+
+```bash
+npm run build
+```
+
+This will:
+- Copy `server.config.json` to `dist/config/`
+- Copy `server.config.dev.json.template` to `dist/config/`
+- Copy `server.config.dev.json` to `dist/config/` (if it exists)
 
 ## Best Practices
 
-1. **Sensitive Data**: Keep sensitive data like client secrets in environment variables rather than the config file
-2. **Environment-Specific**: Use different config files or environment overrides for different deployment environments
-3. **Version Control**: The base config file can be committed to version control, but ensure sensitive values are overridden via environment variables
-4. **Validation**: Always validate configuration on startup to catch issues early
+### Configuration Management
+1. **Use dev config for secrets**: Store sensitive local development values in `server.config.dev.json`
+2. **Environment-specific overrides**: Use environment variables for production deployments
+3. **Template file maintenance**: Keep the template file updated when adding new secret configuration options
+4. **Deep merge awareness**: Understand that dev config merges deeply, so you only need to specify changed values
+
+### Security
+1. **Never commit secrets**: The `.gitignore` protects you, but always verify what you're committing
+2. **Production environment variables**: Always use environment variables for production secrets
+3. **Validate on startup**: The built-in validation catches configuration errors early
+4. **Rotate secrets regularly**: Easy to do with dev config - just update the file
+
+### Development Workflow
+1. **Copy template first**: Always start with the template file when setting up a new development environment
+2. **Share template changes**: When adding new secret config options, update the template file too
+3. **Documentation**: Document any new configuration options in this file
 
 ## Benefits
 
-1. **Centralized Configuration**: All settings in one organized location
-2. **Type Safety**: TypeScript interfaces prevent configuration errors
-3. **Better Documentation**: Configuration structure is self-documenting
-4. **Maintainability**: Easier to understand and modify application settings
-5. **Backward Compatibility**: Existing environment variable workflows continue to work
-6. **Validation**: Built-in validation prevents common configuration mistakes
+1. **🔒 Enhanced Security**: Secrets are kept out of source control while maintaining easy local development
+2. **🎯 Centralized Configuration**: All settings organized in structured, type-safe files
+3. **🔧 Flexible Overrides**: Three-layer priority system (base → dev → environment) 
+4. **🛠️ Developer Experience**: Template files and clear setup process for new developers
+5. **🔄 Backward Compatibility**: Existing environment variable workflows continue to work
+6. **✅ Built-in Validation**: Configuration errors are caught at startup with clear error messages
+7. **📝 Better Documentation**: Configuration structure is self-documenting with TypeScript interfaces
+8. **🚀 Production Ready**: Easy deployment with environment variable overrides
