@@ -56,9 +56,15 @@ npm install
 
 # Start development server with hot reloading
 npm run dev
+
+# Build for production (includes config file copying)
+npm run build
+
+# Clean build artifacts
+npm run clean
 ```
 
-The backend development server will be available at `http://localhost:8324` with automatic restarts on file changes.
+The backend development server will be available at `http://localhost:3000` with automatic restarts on file changes.
 
 ### Full Stack Development
 
@@ -132,32 +138,69 @@ export const createProduct = {
 export default [getProducts, createProduct];
 ```
 
-## Environment Variables
+## Configuration Management
+
+The application uses a centralized configuration system that replaces direct environment variable usage with a structured approach.
+
+### Configuration Files
+
+- **`server/src/config/server.config.json`** - Main configuration file with default values
+- **`server/src/config/config-manager.ts`** - Configuration utility module with type safety
+- **`.env`** - Environment variables that override configuration file values
+
+### Usage in Development
+
+The configuration system provides type safety and better organization:
+
+```typescript
+import configManager from './config/config-manager';
+
+// Get complete configuration
+const config = configManager.getConfiguration();
+
+// Get specific sections
+const serverConfig = configManager.getServerConfig();
+const corsConfig = configManager.getCorsConfig();
+```
+
+### Environment Variables
 
 ### Development Environment
 
-Create a `.env` file in the root directory for local development:
+Create a `.env` file in the server directory for local development overrides:
 
 ```bash
 # Server configuration
-PORT=8324
+PORT=3000
 NODE_ENV=development
 
 # Frontend configuration
-FRONTEND_DIST=dist/frontend
+FRONTEND_DIST=../../frontend/dist
 
 # CORS configuration
 CORS_ORIGIN=http://localhost:5173
+
+# Authentication (for development)
+DISABLE_AUTH=true
+
+# Session secret (required)
+SESSION_SECRET=your-dev-session-secret-at-least-32-chars
 ```
 
-### Custom Environment Variables
+**Note**: Environment variables override values in `server.config.json`. The configuration system will log which values are being overridden at startup.
 
-You can customize the frontend distribution path:
+### Custom Configuration
+
+You can customize various settings through the configuration system:
 
 ```bash
-export FRONTEND_DIST="custom/frontend/path"
+# Override specific configuration values
+export PORT=4000
+export CORS_ORIGIN=http://localhost:3000
 ./scripts/build-frontend.sh
 ```
+
+For detailed information about the configuration system, see the [Configuration Guide](Configuration.md).
 
 ## Debugging
 
@@ -212,6 +255,10 @@ npm run lint:fix  # Auto-fix issues
 ├── server/            # Express server
 │   ├── src/
 │   │   ├── api/        # API routes and handlers
+│   │   ├── config/     # Configuration management
+│   │   │   ├── config-manager.ts     # Configuration utility
+│   │   │   ├── server.config.json    # Default configuration
+│   │   │   └── index.ts              # Barrel export
 │   │   └── types/      # TypeScript type definitions
 │   └── package.json
 ├── scripts/           # Build and utility scripts
@@ -222,7 +269,7 @@ npm run lint:fix  # Auto-fix issues
 
 ### Common Issues
 
-1. **Port conflicts**: Change the PORT environment variable if 8324 is in use
+1. **Port conflicts**: Change the PORT in configuration file or environment variable if 3000 is in use
 2. **Node version**: Ensure you're using the Node.js version specified in `.devcontainer`
 3. **Dependencies**: Run `npm install` in both `frontend/` and `server/` directories
 4. **TypeScript errors**: Check `tsconfig.json` files for proper configuration

@@ -1,0 +1,32 @@
+{
+  "server": {
+    "port": 3000,
+    "frontendDist": "../../frontend/dist",
+    "nodeEnv": "development"
+  },
+  "cors": {
+    "origin": "http://localhost:5173",
+    "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    "allowedHeaders": ["Content-Type", "Authorization"],
+    "credentials": true
+  },
+  "session": {
+    "secret": "your-random-256-bit-session-secret-change-this-in-production",
+    "resave": false,
+    "saveUninitialized": false,
+    "cookieSecure": false
+  },
+  "auth": {
+    "disabled": false,
+    "oidc": {
+      "issuer": "https://login.microsoftonline.com/ae5a8cb0-673c-43ba-826c-c2d6c87f2d70/v2.0",
+      "authorizationURL": "https://login.microsoftonline.com/ae5a8cb0-673c-43ba-826c-c2d6c87f2d70/oauth2/v2.0/authorize",
+      "tokenURL": "https://login.microsoftonline.com/ae5a8cb0-673c-43ba-826c-c2d6c87f2d70/oauth2/v2.0/token",
+      "userInfoURL": "https://graph.microsoft.com/oidc/userinfo",
+      "clientID": "sec",
+      "clientSecret": "sec",
+      "callbackURL": "http://localhost:3000/auth/callback",
+      "scope": "openid profile email"
+    }
+  }
+}

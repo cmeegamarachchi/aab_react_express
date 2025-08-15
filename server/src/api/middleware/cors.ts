@@ -1,4 +1,5 @@
 import cors from "cors";
+import configManager from "../../config/config-manager";
 
 interface CorsOptions {
   origin: string;
@@ -7,11 +8,13 @@ interface CorsOptions {
   credentials: boolean;
 }
 
+const corsConfig = configManager.getCorsConfig();
+
 const corsOptions: CorsOptions = {
-  origin: process.env.CORS_ORIGIN || "*",
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
-  credentials: true,
+  origin: corsConfig.origin,
+  methods: corsConfig.methods,
+  allowedHeaders: corsConfig.allowedHeaders,
+  credentials: corsConfig.credentials,
 };
 
 export default cors(corsOptions);

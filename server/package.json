@@ -6,9 +6,11 @@
   "scripts": {
     "start": "node dist/index.js",
     "dev": "nodemon src/index.ts",
-    "build": "tsc",
+    "build": "tsc && npm run copy-config",
     "clean": "rm -rf dist",
-    "prebuild": "npm run clean"
+    "prebuild": "npm run clean",
+    "copy-config": "mkdir -p dist/config && cp src/config/server.config.json dist/config/ && echo \"✅ Configuration files copied to dist/config/\"",
+    "postbuild": "echo \"🏗️  Server build complete with configuration files\""
   },
   "dependencies": {
     "cors": "^2.8.5",

@@ -62,14 +62,57 @@ server/src/api/middleware/
 
 ## Configuration
 
-### Environment Variables
+### Configuration System
 
-Create a `.env` file in your server directory with the following variables:
+The application uses a centralized configuration system with a `server.config.json` file located in `server/src/config/`. This file contains all application settings organized into logical sections.
+
+### Configuration File
+
+The main configuration file `server/src/config/server.config.json`:
+
+```json
+{
+  "server": {
+    "port": 3000,
+    "frontendDist": "../../frontend/dist",
+    "nodeEnv": "development"
+  },
+  "cors": {
+    "origin": "http://localhost:5173",
+    "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    "allowedHeaders": ["Content-Type", "Authorization"],
+    "credentials": true
+  },
+  "session": {
+    "secret": "your-random-256-bit-session-secret-change-this-in-production",
+    "resave": false,
+    "saveUninitialized": false,
+    "cookieSecure": false
+  },
+  "auth": {
+    "disabled": false,
+    "oidc": {
+      "issuer": "https://your-provider-issuer-url",
+      "authorizationURL": "https://your-provider-auth-url",
+      "tokenURL": "https://your-provider-token-url",
+      "userInfoURL": "https://your-provider-userinfo-url",
+      "clientID": "your-client-id",
+      "clientSecret": "your-client-secret",
+      "callbackURL": "http://localhost:3000/auth/callback",
+      "scope": "openid profile email"
+    }
+  }
+}
+```
+
+### Environment Variable Overrides
+
+You can still use environment variables to override configuration values. Create a `.env` file in your server directory:
 
 ```bash
 # Server Configuration
-PORT=8324
-FRONTEND_DIST=../frontend/dist
+PORT=3000
+FRONTEND_DIST=../../frontend/dist
 NODE_ENV=development
 
 # Session Configuration (Required)
@@ -85,8 +128,10 @@ OIDC_TOKEN_URL=https://your-provider-token-url
 OIDC_USERINFO_URL=https://your-provider-userinfo-url
 OIDC_CLIENT_ID=your-client-id
 OIDC_CLIENT_SECRET=your-client-secret
-OIDC_CALLBACK_URL=http://localhost:8324/auth/callback
+OIDC_CALLBACK_URL=http://localhost:3000/auth/callback
 ```
+
+**Note**: Environment variables take precedence over configuration file values, providing flexibility for different deployment environments.
 
 ### Required Dependencies
 
@@ -106,6 +151,17 @@ Add these to your `package.json`:
 }
 ```
 
+### Configuration Management
+
+The application uses a centralized configuration system through the `config-manager.ts` utility. This system:
+
+- Loads configuration from `server/src/config/server.config.json`
+- Allows environment variable overrides for sensitive data
+- Provides type safety with TypeScript interfaces
+- Includes validation and helpful logging
+
+For detailed information about the configuration system, see the [Configuration Guide](Configuration.md).
+
 ## Provider Examples
 
 ### Azure Entra ID (Azure AD)
@@ -121,7 +177,7 @@ Add these to your `package.json`:
 
 2. **Configure Authentication:**
    - Go to Authentication section
-   - Add redirect URIs for all environments
+   - Add redirect URIs for all environments (e.g., `http://localhost:3000/auth/callback` for development)
    - Enable "ID tokens" under Implicit grant and hybrid flows
 
 3. **Create Client Secret:**
@@ -136,14 +192,14 @@ Add these to your `package.json`:
 #### 2. Environment Configuration
 
 ```bash
-# Azure Entra ID Configuration
+# Azure Entra ID Configuration (in .env file or config file)
 OIDC_ISSUER=https://login.microsoftonline.com/{your-tenant-id}/v2.0
 OIDC_AUTHORIZATION_URL=https://login.microsoftonline.com/{your-tenant-id}/oauth2/v2.0/authorize
 OIDC_TOKEN_URL=https://login.microsoftonline.com/{your-tenant-id}/oauth2/v2.0/token
 OIDC_USERINFO_URL=https://graph.microsoft.com/oidc/userinfo
 OIDC_CLIENT_ID=your-application-client-id
 OIDC_CLIENT_SECRET=your-application-client-secret
-OIDC_CALLBACK_URL=http://localhost:8324/auth/callback
+OIDC_CALLBACK_URL=http://localhost:3000/auth/callback
 ```
 
 #### 3. Find Your Azure IDs
@@ -166,7 +222,7 @@ OIDC_CALLBACK_URL=http://localhost:8324/auth/callback
    - Create new app client
    - Enable "Generate client secret"
    - Configure OAuth flows: Authorization code grant
-   - Set callback URLs: `http://localhost:8324/auth/callback`
+   - Set callback URLs: `http://localhost:3000/auth/callback`
 
 3. **Configure Hosted UI (Optional):**
    - Go to App integration → Domain
@@ -176,14 +232,14 @@ OIDC_CALLBACK_URL=http://localhost:8324/auth/callback
 #### 2. Environment Configuration
 
 ```bash
-# AWS Cognito Configuration
+# AWS Cognito Configuration (in .env file or config file)
 OIDC_ISSUER=https://cognito-idp.{region}.amazonaws.com/{user-pool-id}
 OIDC_AUTHORIZATION_URL=https://{domain}.auth.{region}.amazoncognito.com/oauth2/authorize
 OIDC_TOKEN_URL=https://{domain}.auth.{region}.amazoncognito.com/oauth2/token
 OIDC_USERINFO_URL=https://{domain}.auth.{region}.amazoncognito.com/oauth2/userInfo
 OIDC_CLIENT_ID=your-cognito-client-id
 OIDC_CLIENT_SECRET=your-cognito-client-secret
-OIDC_CALLBACK_URL=http://localhost:8324/auth/callback
+OIDC_CALLBACK_URL=http://localhost:3000/auth/callback
 ```
 
 #### 3. Find Your Cognito Values
@@ -204,9 +260,9 @@ OIDC_CALLBACK_URL=http://localhost:8324/auth/callback
    - Select technology: Node.js
 
 2. **Configure Settings:**
-   - Allowed Callback URLs: `http://localhost:8324/auth/callback`
-   - Allowed Logout URLs: `http://localhost:8324`
-   - Allowed Web Origins: `http://localhost:8324`
+   - Allowed Callback URLs: `http://localhost:3000/auth/callback`
+   - Allowed Logout URLs: `http://localhost:3000`
+   - Allowed Web Origins: `http://localhost:3000`
 
 3. **Get Application Details:**
    - Note down Domain, Client ID, and Client Secret
@@ -215,14 +271,14 @@ OIDC_CALLBACK_URL=http://localhost:8324/auth/callback
 #### 2. Environment Configuration
 
 ```bash
-# Auth0 Configuration
+# Auth0 Configuration (in .env file or config file)
 OIDC_ISSUER=https://{your-domain}.auth0.com/
 OIDC_AUTHORIZATION_URL=https://{your-domain}.auth0.com/authorize
 OIDC_TOKEN_URL=https://{your-domain}.auth0.com/oauth/token
 OIDC_USERINFO_URL=https://{your-domain}.auth0.com/userinfo
 OIDC_CLIENT_ID=your-auth0-client-id
 OIDC_CLIENT_SECRET=your-auth0-client-secret
-OIDC_CALLBACK_URL=http://localhost:8324/auth/callback
+OIDC_CALLBACK_URL=http://localhost:3000/auth/callback
 ```
 
 #### 3. Find Your Auth0 Values

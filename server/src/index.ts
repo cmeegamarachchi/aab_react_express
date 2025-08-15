@@ -1,15 +1,21 @@
 import express from "express";
 import path from "path";
 import dotenv from "dotenv";
+import configManager from "./config/config-manager";
 
+// Load environment variables first (for any overrides)
 dotenv.config();
 
-const app = express();
-const PORT: number = parseInt(process.env.PORT || "8324", 10);
-const FRONTEND_DIST: string = process.env.FRONTEND_DIST || "../frontend";
+// Load and validate configuration
+const config = configManager.loadConfiguration();
+if (!configManager.validateConfiguration()) {
+  console.error("❌ Configuration validation failed. Exiting...");
+  process.exit(1);
+}
 
-// Initialize authentication
-import { initializeAuth, requireAuth } from "./api/middleware/auth";
+const app = express();
+const PORT: number = config.server.port;
+const FRONTEND_DIST: string = config.server.frontendDist;
 
 // Initialize authentication
 import { initializeAuth, requireAuth } from "./api/middleware/auth";

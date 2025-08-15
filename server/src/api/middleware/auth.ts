@@ -2,21 +2,25 @@ import express from "express";
 import session from "express-session";
 import passport from "passport";
 import { Strategy as OpenIDConnectStrategy } from "passport-openidconnect";
+import configManager from "../../config/config-manager";
 
 // Check if authentication is disabled
 const isAuthDisabled = () => {
-  return process.env.DISABLE_AUTH === "true" || process.env.DISABLE_AUTH === "1";
+  const authConfig = configManager.getAuthConfig();
+  return authConfig.disabled;
 };
 
 /**
  * Configure session middleware
  */
 export const configureSession = () => {
+  const sessionConfig = configManager.getSessionConfig();
+
   return session({
-    secret: process.env.SESSION_SECRET || "your-secret-key",
-    resave: false,
-    saveUninitialized: false,
-    cookie: { secure: process.env.NODE_ENV === "production" },
+    secret: sessionConfig.secret,
+    resave: sessionConfig.resave,
+    saveUninitialized: sessionConfig.saveUninitialized,
+    cookie: { secure: sessionConfig.cookieSecure },
   });
 };
 
@@ -24,19 +28,21 @@ export const configureSession = () => {
  * Configure Passport.js with OpenID Connect strategy
  */
 export const configurePassport = () => {
+  const authConfig = configManager.getAuthConfig();
+
   // OpenID Connect Strategy
   passport.use(
     "oidc",
     new OpenIDConnectStrategy(
       {
-        issuer: process.env.OIDC_ISSUER || "",
-        authorizationURL: process.env.OIDC_AUTHORIZATION_URL || "",
-        tokenURL: process.env.OIDC_TOKEN_URL || "",
-        userInfoURL: process.env.OIDC_USERINFO_URL || "",
-        clientID: process.env.OIDC_CLIENT_ID || "",
-        clientSecret: process.env.OIDC_CLIENT_SECRET || "",
-        callbackURL: process.env.OIDC_CALLBACK_URL || "/auth/callback",
-        scope: "openid profile email",
+        issuer: authConfig.oidc.issuer,
+        authorizationURL: authConfig.oidc.authorizationURL,
+        tokenURL: authConfig.oidc.tokenURL,
+        userInfoURL: authConfig.oidc.userInfoURL,
+        clientID: authConfig.oidc.clientID,
+        clientSecret: authConfig.oidc.clientSecret,
+        callbackURL: authConfig.oidc.callbackURL,
+        scope: authConfig.oidc.scope,
       },
       (issuer: any, profile: any, done: any) => {
         return done(null, profile);

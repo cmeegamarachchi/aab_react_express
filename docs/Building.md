@@ -78,7 +78,7 @@ cd dist/api && npm start
 ```
 
 The server will:
-- Start on port 8324 (or PORT environment variable)
+- Start on port 3000 (or PORT environment variable)
 - Serve API requests at `/api/*`
 - Serve the React SPA for all other routes
 
@@ -105,8 +105,8 @@ Test that the build process works correctly:
 cd dist/api && npm start
 
 # In another terminal, test the server
-curl http://localhost:8324/api/health
-curl http://localhost:8324/  # Should serve the React app
+curl http://localhost:3000/api/health
+curl http://localhost:3000/  # Should serve the React app
 ```
 
 ### Automated Testing
@@ -125,10 +125,10 @@ The application includes a health check endpoint:
 
 ```bash
 # Check if the server is running
-curl http://localhost:8324/api/health
+curl http://localhost:3000/api/health
 
 # Expected response
-{"status":"ok","timestamp":"2025-08-11T..."}
+{"status":"ok","timestamp":"2025-08-15T..."}
 ```
 
 ## Environment Configuration
@@ -139,24 +139,32 @@ Frontend build-time variables can be set in `frontend/.env`:
 
 ```bash
 # Frontend environment variables
-VITE_API_BASE_URL=http://localhost:8324/api
+VITE_API_BASE_URL=http://localhost:3000/api
 VITE_APP_NAME="Full Stack App"
 ```
 
-### Runtime Variables
+### Runtime Configuration
 
-Server runtime variables:
+Server runtime configuration is managed through the centralized configuration system. You can set:
 
 ```bash
 # Essential variables
-PORT=8324                    # Server port
-NODE_ENV=production          # Environment mode
-FRONTEND_DIST=dist/frontend  # Frontend files location
+PORT=3000                         # Server port
+NODE_ENV=production               # Environment mode
+FRONTEND_DIST=../../frontend/dist # Frontend files location
 
-# Optional variables
-CORS_ORIGIN=*               # CORS configuration
-LOG_LEVEL=info              # Logging level
+# Configuration overrides
+CORS_ORIGIN=*                     # CORS configuration
+SESSION_SECRET=your-secret-here   # Session secret
+DISABLE_AUTH=false               # Authentication toggle
+
+# OIDC settings (if authentication is enabled)
+OIDC_CLIENT_ID=your-client-id
+OIDC_CLIENT_SECRET=your-secret
+# ... other OIDC settings
 ```
+
+The configuration system loads defaults from `server/src/config/server.config.json` and allows environment variable overrides. See the [Configuration Guide](Configuration.md) for detailed information.
 
 ## Build Optimization
 
@@ -213,7 +221,10 @@ export NODE_ENV=production
    ```bash
    export NODE_ENV=production
    export PORT=80
-   export FRONTEND_DIST=frontend
+   export SESSION_SECRET=your-production-session-secret
+   export OIDC_CLIENT_ID=your-client-id
+   export OIDC_CLIENT_SECRET=your-client-secret
+   # ... other production settings
    ```
 
 5. **Start the application**:
@@ -266,9 +277,14 @@ echo "Build complete!"
 
 #### build-api.sh
 - Installs backend dependencies
-- Runs TypeScript compilation
-- Copies files to `dist/api/`
+- Runs `npm run build` in server directory (which includes TypeScript compilation and config file copying)
+- Copies compiled files to `dist/api/`
 - Installs production dependencies in `dist/api/`
+
+The server's npm build process handles:
+- TypeScript compilation (`tsc`)
+- Configuration file copying (`npm run copy-config`)
+- Build completion feedback (`postbuild` script)
 
 ## Troubleshooting Builds
 

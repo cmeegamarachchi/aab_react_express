@@ -25,7 +25,7 @@ docker-compose up -d --build
 docker build -t aab-react-express .
 
 # Run container
-docker run -p 8324:8324 aab-react-express
+docker run -p 3000:3000 aab-react-express
 ```
 
 ## Docker Architecture
@@ -64,22 +64,23 @@ docker build --target production -t aab-react-express:prod .
 
 ```bash
 # Basic run
-docker run -p 8324:8324 aab-react-express
+docker run -p 3000:3000 aab-react-express
 
 # Run in detached mode
-docker run -d -p 8324:8324 --name aab-app aab-react-express
+docker run -d -p 3000:3000 --name aab-app aab-react-express
 
 # Run with custom port mapping
-docker run -d -p 3000:8324 --name aab-app aab-react-express
+docker run -d -p 8080:3000 --name aab-app aab-react-express
 
 # Run with environment variables
-docker run -d -p 8324:8324 \
+docker run -d -p 3000:3000 \
   -e NODE_ENV=production \
   -e CORS_ORIGIN=https://mydomain.com \
+  -e SESSION_SECRET=your-production-secret \
   --name aab-app aab-react-express
 
 # Run with volume mount (for logs)
-docker run -d -p 8324:8324 \
+docker run -d -p 3000:3000 \
   -v /host/logs:/app/logs \
   --name aab-app aab-react-express
 ```
@@ -146,9 +147,10 @@ services:
   app:
     build: .
     ports:
-      - "8324:8324"
+      - "3000:3000"
     environment:
       - NODE_ENV=production
+      - SESSION_SECRET=your-production-secret
     restart: unless-stopped
 ```
 
@@ -202,13 +204,13 @@ docker-compose exec app sh
 docker build -t aab-react-express-test .
 
 # Run container
-docker run -d -p 8325:8324 --name test-app aab-react-express-test
+docker run -d -p 3001:3000 --name test-app aab-react-express-test
 
 # Test health endpoint
-curl http://localhost:8325/api/health
+curl http://localhost:3001/api/health
 
 # Test frontend
-curl http://localhost:8325/
+curl http://localhost:3001/
 
 # Cleanup
 docker stop test-app && docker rm test-app
@@ -259,9 +261,12 @@ docker load -i /tmp/aab-react-express-latest.tar
 
 # Run with production settings
 docker run -d \
-  -p 80:8324 \
+  -p 80:3000 \
   -e NODE_ENV=production \
   -e CORS_ORIGIN=https://yourdomain.com \
+  -e SESSION_SECRET=your-production-secret \
+  -e OIDC_CLIENT_ID=your-client-id \
+  -e OIDC_CLIENT_SECRET=your-client-secret \
   --name aab-app \
   --restart unless-stopped \
   aab-react-express:latest
@@ -313,7 +318,7 @@ spec:
       - name: app
         image: aab-react-express:latest
         ports:
-        - containerPort: 8324
+        - containerPort: 3000
         env:
         - name: NODE_ENV
           value: "production"
@@ -327,7 +332,7 @@ spec:
     app: aab-react-express
   ports:
   - port: 80
-    targetPort: 8324
+    targetPort: 3000
   type: LoadBalancer
 ```
 
@@ -335,17 +340,33 @@ spec:
 
 ### Container Environment Variables
 
+The application uses a centralized configuration system that allows environment variable overrides:
+
 ```bash
 # Essential variables
 NODE_ENV=production          # Runtime environment
-PORT=8324                   # Server port (internal)
-FRONTEND_DIST=frontend      # Frontend files location (set automatically)
+PORT=3000                   # Server port (internal)
+FRONTEND_DIST=../../frontend/dist # Frontend files location (set automatically)
+
+# Session configuration
+SESSION_SECRET=your-secret   # Required: Session secret (minimum 16 characters)
+
+# CORS configuration
+CORS_ORIGIN=*               # CORS origin configuration
+
+# Authentication configuration
+DISABLE_AUTH=false          # Set to 'true' to disable authentication
+OIDC_CLIENT_ID=your-id      # OIDC client ID (if auth enabled)
+OIDC_CLIENT_SECRET=your-secret # OIDC client secret (if auth enabled)
+OIDC_ISSUER=your-issuer     # OIDC issuer URL (if auth enabled)
+# ... other OIDC settings
 
 # Optional variables
-CORS_ORIGIN=*               # CORS origin configuration
 LOG_LEVEL=info              # Logging level
 TZ=UTC                      # Timezone
 ```
+
+For detailed information about all configuration options, see the [Configuration Guide](Configuration.md).
 
 ### Docker Compose Environment
 
@@ -356,10 +377,11 @@ services:
   app:
     build: .
     ports:
-      - "8324:8324"
+      - "3000:3000"
     environment:
       - NODE_ENV=production
       - CORS_ORIGIN=https://yourdomain.com
+      - SESSION_SECRET=your-production-secret
       - LOG_LEVEL=info
     env_file:
       - .env.production
@@ -380,7 +402,7 @@ The Dockerfile includes several optimizations:
 ```bash
 # Run with memory limits
 docker run -d \
-  -p 8324:8324 \
+  -p 3000:3000 \
   --memory=512m \
   --cpus=1.0 \
   --name aab-app \
@@ -388,7 +410,7 @@ docker run -d \
 
 # Run with restart policies
 docker run -d \
-  -p 8324:8324 \
+  -p 3000:3000 \
   --restart unless-stopped \
   --name aab-app \
   aab-react-express
@@ -415,7 +437,7 @@ Add health checks to your Dockerfile:
 
 ```dockerfile
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:8324/api/health || exit 1
+  CMD curl -f http://localhost:3000/api/health || exit 1
 ```
 
 ### Monitoring with Docker Stats
@@ -441,7 +463,7 @@ docker stats --no-stream > container-stats.txt
    docker logs aab-app
    
    # Check if port is available
-   netstat -ln | grep 8324
+   netstat -ln | grep 3000
    ```
 
 2. **Build failures**:
@@ -479,7 +501,7 @@ docker exec -it aab-app sh
 USER node
 
 # Run with read-only root filesystem
-docker run -d --read-only -p 8324:8324 aab-react-express
+docker run -d --read-only -p 3000:3000 aab-react-express
 
 # Limit capabilities
 docker run -d --cap-drop ALL --cap-add CHOWN aab-react-express
