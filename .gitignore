@@ -172,3 +172,6 @@ temp/
 # package-lock.json
 # yarn.lock
 # pnpm-lock.yaml
+
+# Development configuration files (contains secrets)
+server.config.dev.json

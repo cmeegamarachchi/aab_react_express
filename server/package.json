@@ -9,7 +9,7 @@
     "build": "tsc && npm run copy-config",
     "clean": "rm -rf dist",
     "prebuild": "npm run clean",
-    "copy-config": "mkdir -p dist/config && cp src/config/server.config.json dist/config/ && echo \"✅ Configuration files copied to dist/config/\"",
+    "copy-config": "mkdir -p dist/config && cp src/config/server.config.json dist/config/ && cp src/config/server.config.dev.json.template dist/config/ && ([ -f src/config/server.config.dev.json ] && cp src/config/server.config.dev.json dist/config/ || echo \"No server.config.dev.json found, skipping copy\") && echo \"✅ Configuration files copied to dist/config/\"",
     "postbuild": "echo \"🏗️  Server build complete with configuration files\""
   },
   "dependencies": {

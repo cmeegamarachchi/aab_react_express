@@ -1,0 +1,10 @@
+{
+  "session": {
+    "secret": "your-development-session-secret-here"
+  },
+  "auth": {
+    "oidc": {
+      "clientSecret": "your-oidc-client-secret-here"
+    }
+  }
+}

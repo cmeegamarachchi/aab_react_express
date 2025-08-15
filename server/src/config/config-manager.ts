@@ -41,9 +41,11 @@ class ConfigManager {
   private static instance: ConfigManager;
   private configuration: ApplicationConfiguration | null = null;
   private readonly configPath: string;
+  private readonly devConfigPath: string;
 
   private constructor() {
     this.configPath = path.join(__dirname, "server.config.json");
+    this.devConfigPath = path.join(__dirname, "server.config.dev.json");
   }
 
   /**
@@ -57,7 +59,36 @@ class ConfigManager {
   }
 
   /**
+   * Deep merge two objects, with the second object overriding values in the first
+   */
+  private deepMerge(target: any, source: any): any {
+    if (source === null || source === undefined) {
+      return target;
+    }
+    
+    if (typeof source !== 'object' || Array.isArray(source)) {
+      return source;
+    }
+    
+    const result = { ...target };
+    
+    for (const key in source) {
+      if (source.hasOwnProperty(key)) {
+        if (typeof source[key] === 'object' && !Array.isArray(source[key]) && source[key] !== null &&
+            typeof target[key] === 'object' && !Array.isArray(target[key]) && target[key] !== null) {
+          result[key] = this.deepMerge(target[key], source[key]);
+        } else {
+          result[key] = source[key];
+        }
+      }
+    }
+    
+    return result;
+  }
+
+  /**
    * Load configuration from server.config.json file
+   * Optionally merge with server.config.dev.json for local overrides
    * Environment variables can override configuration values
    */
   public loadConfiguration(): ApplicationConfiguration {
@@ -66,9 +97,23 @@ class ConfigManager {
     }
 
     try {
-      // Read configuration file
+      // Read base configuration file
       const configData = fs.readFileSync(this.configPath, "utf8");
-      const baseConfig: ApplicationConfiguration = JSON.parse(configData);
+      let baseConfig: ApplicationConfiguration = JSON.parse(configData);
+
+      // Check if dev config file exists and merge it
+      let devConfigLoaded = false;
+      if (fs.existsSync(this.devConfigPath)) {
+        try {
+          const devConfigData = fs.readFileSync(this.devConfigPath, "utf8");
+          const devConfig = JSON.parse(devConfigData);
+          baseConfig = this.deepMerge(baseConfig, devConfig);
+          devConfigLoaded = true;
+          console.log("📝 Development configuration loaded and merged from server.config.dev.json");
+        } catch (devError) {
+          console.warn("⚠️ Warning: server.config.dev.json exists but could not be parsed:", devError);
+        }
+      }
 
       // Override with environment variables if they exist
       this.configuration = {
@@ -104,10 +149,10 @@ class ConfigManager {
         },
       };
 
-      console.log("✅ Configuration loaded successfully from server.config.json");
+      console.log("✅ Configuration loaded successfully from server.config.json" + (devConfigLoaded ? " with dev overrides" : ""));
 
       // Log configuration sources
-      this.logConfigurationSources();
+      this.logConfigurationSources(devConfigLoaded);
 
       return this.configuration;
     } catch (error) {
@@ -156,7 +201,7 @@ class ConfigManager {
   /**
    * Log which configuration values are coming from environment variables vs config file
    */
-  private logConfigurationSources(): void {
+  private logConfigurationSources(devConfigLoaded: boolean = false): void {
     const envOverrides: string[] = [];
 
     if (process.env.PORT) envOverrides.push("PORT");
@@ -173,8 +218,12 @@ class ConfigManager {
     if (process.env.OIDC_CLIENT_SECRET) envOverrides.push("OIDC_CLIENT_SECRET");
     if (process.env.OIDC_CALLBACK_URL) envOverrides.push("OIDC_CALLBACK_URL");
 
-    if (envOverrides.length > 0) {
-      console.log("🔧 Environment variable overrides:", envOverrides.join(", "));
+    const sources: string[] = [];
+    if (devConfigLoaded) sources.push("server.config.dev.json");
+    if (envOverrides.length > 0) sources.push(`Environment variables (${envOverrides.join(", ")})`);
+
+    if (sources.length > 0) {
+      console.log("🔧 Configuration overrides from:", sources.join(", "));
     }
   }
 
