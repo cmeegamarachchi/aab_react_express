@@ -18,6 +18,11 @@ const NavUser = () => {
 
   const user = data.user;
 
+  const handleLogout = () => {
+    // Redirect to the server's logout endpoint
+    window.location.href = '/auth/logout';
+  };
+
   return (
     <SidebarMenu>
       <SidebarMenuItem>
@@ -79,7 +84,7 @@ const NavUser = () => {
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={handleLogout}>
               <LogOut />
               Log out
             </DropdownMenuItem>

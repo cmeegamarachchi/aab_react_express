@@ -26,9 +26,6 @@ export interface ApplicationConfiguration {
     disabled: boolean;
     oidc: {
       issuer: string;
-      authorizationURL: string;
-      tokenURL: string;
-      userInfoURL: string;
       clientID: string;
       clientSecret: string;
       callbackURL: string;
@@ -65,24 +62,30 @@ class ConfigManager {
     if (source === null || source === undefined) {
       return target;
     }
-    
-    if (typeof source !== 'object' || Array.isArray(source)) {
+
+    if (typeof source !== "object" || Array.isArray(source)) {
       return source;
     }
-    
+
     const result = { ...target };
-    
+
     for (const key in source) {
       if (source.hasOwnProperty(key)) {
-        if (typeof source[key] === 'object' && !Array.isArray(source[key]) && source[key] !== null &&
-            typeof target[key] === 'object' && !Array.isArray(target[key]) && target[key] !== null) {
+        if (
+          typeof source[key] === "object" &&
+          !Array.isArray(source[key]) &&
+          source[key] !== null &&
+          typeof target[key] === "object" &&
+          !Array.isArray(target[key]) &&
+          target[key] !== null
+        ) {
           result[key] = this.deepMerge(target[key], source[key]);
         } else {
           result[key] = source[key];
         }
       }
     }
-    
+
     return result;
   }
 
@@ -138,9 +141,6 @@ class ConfigManager {
           disabled: process.env.DISABLE_AUTH === "true" || process.env.DISABLE_AUTH === "1" || baseConfig.auth.disabled,
           oidc: {
             issuer: process.env.OIDC_ISSUER || baseConfig.auth.oidc.issuer,
-            authorizationURL: process.env.OIDC_AUTHORIZATION_URL || baseConfig.auth.oidc.authorizationURL,
-            tokenURL: process.env.OIDC_TOKEN_URL || baseConfig.auth.oidc.tokenURL,
-            userInfoURL: process.env.OIDC_USERINFO_URL || baseConfig.auth.oidc.userInfoURL,
             clientID: process.env.OIDC_CLIENT_ID || baseConfig.auth.oidc.clientID,
             clientSecret: process.env.OIDC_CLIENT_SECRET || baseConfig.auth.oidc.clientSecret,
             callbackURL: process.env.OIDC_CALLBACK_URL || baseConfig.auth.oidc.callbackURL,
@@ -149,7 +149,9 @@ class ConfigManager {
         },
       };
 
-      console.log("✅ Configuration loaded successfully from server.config.json" + (devConfigLoaded ? " with dev overrides" : ""));
+      console.log(
+        "✅ Configuration loaded successfully from server.config.json" + (devConfigLoaded ? " with dev overrides" : "")
+      );
 
       // Log configuration sources
       this.logConfigurationSources(devConfigLoaded);
@@ -211,9 +213,6 @@ class ConfigManager {
     if (process.env.SESSION_SECRET) envOverrides.push("SESSION_SECRET");
     if (process.env.DISABLE_AUTH) envOverrides.push("DISABLE_AUTH");
     if (process.env.OIDC_ISSUER) envOverrides.push("OIDC_ISSUER");
-    if (process.env.OIDC_AUTHORIZATION_URL) envOverrides.push("OIDC_AUTHORIZATION_URL");
-    if (process.env.OIDC_TOKEN_URL) envOverrides.push("OIDC_TOKEN_URL");
-    if (process.env.OIDC_USERINFO_URL) envOverrides.push("OIDC_USERINFO_URL");
     if (process.env.OIDC_CLIENT_ID) envOverrides.push("OIDC_CLIENT_ID");
     if (process.env.OIDC_CLIENT_SECRET) envOverrides.push("OIDC_CLIENT_SECRET");
     if (process.env.OIDC_CALLBACK_URL) envOverrides.push("OIDC_CALLBACK_URL");
